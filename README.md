@@ -56,6 +56,21 @@ the unbundled archive. If it is unset, Google's installer may provision a
 supported interpreter. This option only affects Windows x86_64 because other
 platforms do not provide both archive variants.
 
+### macOS Python
+
+gcloud's installer wants one exact Python minor version (for example 3.14 for
+gcloud 584.0.0), and on macOS it installs that Python system-wide with `sudo`
+when it cannot find one. The password prompt is not visible during a mise
+install, and macOS sudo prompts do not time out, so the install would hang.
+
+The plugin looks for a matching interpreter — `CLOUDSDK_PYTHON`,
+`/Library/Frameworks/Python.framework`, Homebrew, `/usr/local/bin`, then `PATH`
+— and passes it to the installer as `CLOUDSDK_PYTHON`. If none is found, it
+runs the installer with `--install-python false` and warns instead. gcloud still
+works, but to get the virtual environment it sets up, install the version it
+asks for (for example `brew install python@3.14` or `mise use -g python@3.14`)
+or set `CLOUDSDK_PYTHON`, then reinstall gcloud.
+
 ## Post-Installation
 
 After installation, you may need to initialize gcloud:
