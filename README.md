@@ -89,16 +89,44 @@ gcloud components install gke-gcloud-auth-plugin
 gcloud components install cloud-sql-proxy
 ```
 
+### Cloud SDK Components
+
+To install Cloud SDK components with every new gcloud version, list them in the
+`components` tool option. This lives in `mise.toml`, so a project can check in
+the components it needs:
+
+```toml
+[tools]
+gcloud = { version = "latest", components = ["alpha", "beta", "gke-gcloud-auth-plugin"] }
+```
+
+A comma- or space-separated string also works, including from the CLI:
+
+```bash
+mise use 'gcloud[components=gke-gcloud-auth-plugin]'
+```
+
+When the list changes, the next `mise install` (or auto-install, such as
+`mise x`) adds the missing components to the gcloud that is already installed,
+without downloading the SDK again; `mise install --dry-run` shows it as
+"would install". This needs a mise release that includes
+[jdx/mise#13668](https://github.com/jdx/mise/pull/13668). Older mise versions
+install the components only when gcloud itself is installed, so run
+`mise install --force gcloud` or `gcloud components install <component>` after
+changing the list. Removing a component from the list does not uninstall it.
+
 ### Default Cloud SDK Components
 
-You can define a set of Cloud SDK components to be installed automatically every
-time a new gcloud version is installed. Create a file named
+With vfox, or to apply the same components everywhere, create a file named
 `.default-cloud-sdk-components` with one component ID per line.
 
 The plugin searches for this file in the following locations (in order):
 
 1. `$CLOUDSDK_CONFIG/.default-cloud-sdk-components` (defaults to `~/.config/gcloud/` on Unix or `%APPDATA%\gcloud\` on Windows)
 2. `$HOME/.default-cloud-sdk-components`
+
+Components from this file are installed in addition to the `components` tool
+option.
 
 Example `~/.default-cloud-sdk-components`:
 

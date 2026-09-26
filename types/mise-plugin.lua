@@ -9,6 +9,7 @@
 ---@class Runtime
 ---@field osType string Operating system type (e.g. "linux", "darwin", "windows")
 ---@field archType string Architecture type (e.g. "amd64", "arm64")
+---@field envType string|nil libc environment type ("gnu" on glibc Linux, "musl" on musl Linux, nil on other platforms)
 ---@field version string Runtime version
 ---@field pluginDirPath string Path to the plugin directory
 RUNTIME = {}
@@ -61,6 +62,7 @@ ARCH_TYPE = ""
 ---@field rootPath string Installation root path
 ---@field runtimeVersion string Runtime version
 ---@field sdkInfo table<string, SdkInfo> SDK info for installed versions
+---@field options table Tool options from mise.toml
 
 ---@class SdkInfo
 ---@field path string Installation path
@@ -94,9 +96,19 @@ ARCH_TYPE = ""
 ---@field env? EnvKey[] Environment variables to set
 ---@field cacheable? boolean Whether the result can be cached (default false)
 ---@field watch_files? string[] Files to watch for cache invalidation
+---@field redact? boolean Whether env vars should be redacted in output (default false)
 
 ---@class MisePathCtx
 ---@field options table Plugin options from mise.toml
+
+---@class MiseInstallSatisfiedCtx
+---@field version string Installed version
+---@field path string Installation path
+---@field options table Tool options from mise.toml
+
+---@class MiseInstallSatisfiedResult
+---@field satisfied boolean Whether the install matches the request
+---@field reason? string Why it does not, shown in debug output
 
 ---@class BackendListVersionsCtx
 ---@field tool string Tool name
@@ -108,6 +120,7 @@ ARCH_TYPE = ""
 ---@field tool string Tool name
 ---@field version string Version to install
 ---@field install_path string Path where the tool should be installed
+---@field download_path string Path where the tool artifact should be downloaded
 
 ---@class BackendInstallResult
 
@@ -119,6 +132,13 @@ ARCH_TYPE = ""
 ---@class BackendExecEnvResult
 ---@field env_vars EnvKey[] Environment variables to set
 
+---@class BackendUninstallCtx
+---@field tool string Tool name
+---@field version string Installed version
+---@field install_path string Installation path, still present when the hook runs
+---@field download_path string Download path
+---@field options table<string, any> Tool options from the current config
+
 ---@class Plugin
 ---@field name string Plugin name
 ---@field Available? fun(self: Plugin, ctx: AvailableCtx): AvailableVersion[]
@@ -128,9 +148,11 @@ ARCH_TYPE = ""
 ---@field ParseLegacyFile? fun(self: Plugin, ctx: ParseLegacyFileCtx): ParseLegacyFileResult
 ---@field MiseEnv? fun(self: Plugin, ctx: MiseEnvCtx): MiseEnvResult|EnvKey[]
 ---@field MisePath? fun(self: Plugin, ctx: MisePathCtx): string[]
+---@field MiseInstallSatisfied? fun(self: Plugin, ctx: MiseInstallSatisfiedCtx): MiseInstallSatisfiedResult|boolean|nil
 ---@field BackendListVersions? fun(self: Plugin, ctx: BackendListVersionsCtx): BackendListVersionsResult
 ---@field BackendInstall? fun(self: Plugin, ctx: BackendInstallCtx): BackendInstallResult
 ---@field BackendExecEnv? fun(self: Plugin, ctx: BackendExecEnvCtx): BackendExecEnvResult
+---@field BackendUninstall? fun(self: Plugin, ctx: BackendUninstallCtx)
 PLUGIN = {}
 
 ------------------------------------------------------------------------
@@ -163,11 +185,25 @@ local json = {}
 
 -- file module --------------------------------------------------------
 
+---@class FileStat
+---@field size integer File size in bytes
+---@field is_file boolean Whether this is a regular file
+---@field is_dir boolean Whether this is a directory
+---@field is_symlink boolean Whether this is a symlink
+---@field modified integer|nil Last modification time (Unix seconds since epoch, nil if unavailable)
+---@field accessed integer|nil Last access time (Unix seconds since epoch, nil if unavailable)
+---@field created integer|nil Creation time (Unix seconds since epoch, nil if unavailable)
+---@field mode string|nil Octal permission mode string (Unix only, e.g. "755", nil on Windows)
+
 ---@class file
 ---@field read fun(path: string): string Read file contents
 ---@field exists fun(path: string): boolean Check if a file exists
 ---@field symlink fun(src: string, dst: string) Create a symbolic link
 ---@field join_path fun(...: string): string Join path components
+---@field stat fun(path: string): FileStat|nil Get file metadata or nil if not found
+---@field list fun(path: string): string[] List immediate directory entries in sorted order
+---@field glob fun(pattern: string): string[] List paths matching a glob pattern in sorted order
+---@field move fun(src: string, dst: string) Move a file or directory
 local file = {}
 
 -- cmd module ---------------------------------------------------------
@@ -190,8 +226,11 @@ local env = {}
 
 -- archiver module ----------------------------------------------------
 
+---@class ArchiverDecompressOpts
+---@field strip_components? integer Flatten top-level directories while retaining root files (0 or 1)
+
 ---@class archiver
----@field decompress fun(archive: string, dest: string) Decompress an archive (.zip, .tar.gz, .tar.xz, .tar.bz2)
+---@field decompress fun(archive: string, dest: string, opts?: ArchiverDecompressOpts) Decompress an archive (.zip, .tar.gz, .tar.xz, .tar.bz2)
 local archiver = {}
 
 -- semver module ------------------------------------------------------
