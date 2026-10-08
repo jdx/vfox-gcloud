@@ -11,9 +11,11 @@ local linters = new Mapping<String, Step> {
         check = "stylua --check {{files}}"
         fix = "stylua {{files}}"
     }
-    ["actionlint"] {
-        glob = ".github/workflows/*.{yml,yaml}"
-        check = "actionlint {{files}}"
+    // lints GitHub Actions workflows (jdx/jactionlint, a maintained actionlint fork)
+    ["jactionlint"] {
+        glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
+        batch = true
+        check = "jactionlint {{files}}"
     }
 }
 
