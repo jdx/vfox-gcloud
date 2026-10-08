@@ -2,8 +2,8 @@
 MISE_USE_VERSIONS_HOST = "0"
 
 [tools]
-actionlint = "latest"
 hk = "latest"
+jactionlint = "latest"
 lua = "5.4"
 lua-language-server = "latest"
 pkl = "latest"
