@@ -4,7 +4,7 @@
     "version": "Lua 5.1"
   },
   "diagnostics": {
-    "disable": ["duplicate-set-field"]
+    "disable": ["duplicate-set-field", "undefined-doc-param", "doc-field-no-class"]
   },
   "workspace": {
     "checkThirdParty": false,
