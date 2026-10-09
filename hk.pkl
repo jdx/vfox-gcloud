@@ -1,5 +1,5 @@
-amends "package://github.com/jdx/hk/releases/download/v1.18.1/hk@1.18.1#/Config.pkl"
-import "package://github.com/jdx/hk/releases/download/v1.18.1/hk@1.18.1#/Builtins.pkl"
+amends "package://github.com/jdx/hk/releases/download/v2.5.0/hk@2.5.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v2.5.0/hk@2.5.0#/Builtins.pkl"
 
 local linters = new Mapping<String, Step> {
     ["lua-check"] {
@@ -15,7 +15,14 @@ local linters = new Mapping<String, Step> {
     ["jactionlint"] {
         glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
         batch = true
-        check = "jactionlint {{files}}"
+        check = new CommandSpec {
+            command = "jactionlint {{ files }}"
+            effect = "read"
+        }
+        fix = new CommandSpec {
+            command = "jactionlint --fix {{ files }}"
+            effect = "write"
+        }
     }
 }
 
