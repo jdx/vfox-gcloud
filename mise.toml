@@ -3,8 +3,7 @@ MISE_USE_VERSIONS_HOST = "0"
 
 [tools]
 hk = "latest"
-# Exact pin: jactionlint 2.0.2 is newer than the default 24h release-age holdback until 2026-10-10 20:00Z. Loosen to the previous selector after that.
-jactionlint = "2.0.2"
+jactionlint = "2.1.0"
 lua = "5.4"
 lua-language-server = "latest"
 pkl = "latest"
