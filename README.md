@@ -63,13 +63,29 @@ gcloud 584.0.0), and on macOS it installs that Python system-wide with `sudo`
 when it cannot find one. The password prompt is not visible during a mise
 install, and macOS sudo prompts do not time out, so the install would hang.
 
-The plugin looks for a matching interpreter — `CLOUDSDK_PYTHON`,
-`/Library/Frameworks/Python.framework`, Homebrew, `/usr/local/bin`, then `PATH`
-— and passes it to the installer as `CLOUDSDK_PYTHON`. If none is found, it
-runs the installer with `--install-python false` and warns instead. gcloud still
-works, but to get the virtual environment it sets up, install the version it
-asks for (for example `brew install python@3.14` or `mise use -g python@3.14`)
-or set `CLOUDSDK_PYTHON`, then reinstall gcloud.
+The plugin looks for a matching interpreter in this order: `CLOUDSDK_PYTHON`,
+mise's `python` shim, Homebrew, `/usr/local/bin`,
+`/Library/Frameworks/Python.framework`, then `PATH` (`python<version>`,
+`python3`, `python`). Every candidate is executed and checked to report the
+exact required version, so a wrong version is never picked by filename alone.
+The one that matches is passed to the installer as `CLOUDSDK_PYTHON`. If none
+is found, the installer runs with `--install-python false` and a warning
+instead. gcloud still works, but it misses the virtual environment it normally
+sets up, so install the version it asks for (for example
+`mise use -g python@3.14`) or set `CLOUDSDK_PYTHON`, then reinstall gcloud.
+
+mise removes its shim directories from `PATH` while plugin hooks run, so the
+shim is probed explicitly. It resolves to the interpreter mise currently uses
+for `python`, so `CLOUDSDK_PYTHON` keeps working when versions change, as long
+as the minor version still matches.
+
+The plugin also exports `CLOUDSDK_PYTHON` at runtime on macOS when the user
+has not set the variable themselves. `gcloud components install` and
+`gcloud components update` rerun Google's macOS Python setup, which only
+recognizes interpreters from Homebrew, python.org, or `CLOUDSDK_PYTHON`, and
+otherwise downloads and runs a package installer with `sudo`. The exported
+value is picked with the same lookup as above, so it works the same for
+Homebrew and mise users. A variable set by the user always takes precedence.
 
 ## Post-Installation
 
