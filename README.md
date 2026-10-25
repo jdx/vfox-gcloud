@@ -63,13 +63,20 @@ gcloud 584.0.0), and on macOS it installs that Python system-wide with `sudo`
 when it cannot find one. The password prompt is not visible during a mise
 install, and macOS sudo prompts do not time out, so the install would hang.
 
-The plugin looks for a matching interpreter — `CLOUDSDK_PYTHON`,
-`/Library/Frameworks/Python.framework`, Homebrew, `/usr/local/bin`, then `PATH`
-— and passes it to the installer as `CLOUDSDK_PYTHON`. If none is found, it
-runs the installer with `--install-python false` and warns instead. gcloud still
-works, but to get the virtual environment it sets up, install the version it
-asks for (for example `brew install python@3.14` or `mise use -g python@3.14`)
-or set `CLOUDSDK_PYTHON`, then reinstall gcloud.
+The plugin looks for a matching interpreter in this order: `CLOUDSDK_PYTHON`,
+`/Library/Frameworks/Python.framework`, Homebrew, `/usr/local/bin`, mise's
+installs, then `PATH`. When it finds one, it passes the interpreter to the
+installer as `CLOUDSDK_PYTHON`. If none is found, it runs the installer with
+`--install-python false` and warns instead. gcloud still works, but to get the
+virtual environment it sets up, install the version it asks for (for example
+`brew install python@3.14` or `mise use -g python@3.14`) or set
+`CLOUDSDK_PYTHON`, then reinstall gcloud.
+
+The same lookup runs at runtime: a matching interpreter is exported as
+`CLOUDSDK_PYTHON`, so `gcloud components install` and `gcloud components
+update` do not run the `sudo` installer again. Each candidate is executed and
+its version checked before being used, rather than guessed from a filename,
+and a `CLOUDSDK_PYTHON` set by the user always wins.
 
 ## Post-Installation
 
@@ -151,6 +158,7 @@ This plugin sets the following environment variables:
 |----------|-------------|
 | `PATH` | Includes the gcloud SDK bin directory |
 | `CLOUDSDK_ROOT_DIR` | Points to the gcloud SDK installation directory |
+| `CLOUDSDK_PYTHON` | macOS only. The interpreter found by the shared lookup, exported when gcloud requires its exact version and the variable is not already set. |
 
 ## License
 
