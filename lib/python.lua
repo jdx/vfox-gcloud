@@ -87,4 +87,48 @@ function M.find(sdk_path)
     return find_python(version), version
 end
 
+--- Where the interpreter chosen for an SDK is remembered. It lives inside the
+--- SDK directory, so a new gcloud version starts with no cache.
+local function cache_path(sdk_path)
+    return file.join_path(sdk_path, ".mise-cloudsdk-python")
+end
+
+local function read_cache(sdk_path)
+    local handle = io.open(cache_path(sdk_path), "r")
+    if not handle then
+        return nil
+    end
+    local contents = handle:read("*a")
+    handle:close()
+    local cached = strings.trim_space(contents or "")
+    if cached ~= "" and file.exists(cached) then
+        return cached
+    end
+end
+
+local function write_cache(sdk_path, python)
+    local handle = io.open(cache_path(sdk_path), "w")
+    if handle then
+        handle:write(python, "\n")
+        handle:close()
+    end
+end
+
+--- Like `find`, for callers that run on every shell prompt (`EnvKeys`). The
+--- interpreter found by a full probe is remembered next to the SDK, and later
+--- calls only check that it still exists, falling back to the probe when it
+--- does not. A miss is never cached, so installing the right Python later is
+--- picked up on the next call.
+function M.find_cached(sdk_path)
+    local cached = read_cache(sdk_path)
+    if cached then
+        return cached
+    end
+    local found = M.find(sdk_path)
+    if found then
+        pcall(write_cache, sdk_path, found)
+    end
+    return found
+end
+
 return M
